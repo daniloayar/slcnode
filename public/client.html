@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">  
+ <head>
+    <title>SLC Node</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript">
+
+      var apiProxyPrefix = 'apiProxy?apiUrl=';
+      var baseRestUri = 'https://api.sandbox.slcedu.org/api/rest';
+      var sessionCheckUri = baseRestUri + '/system/session/check';
+      var homeResourceUri = baseRestUri + '/v1/home';
+      var studentsUri = baseRestUri + '/v1/students?limit=10';
+
+      $(function() {
+        $.getJSON(apiProxyPrefix + sessionCheckUri, function(sessionData) {
+          if (sessionData.authenticated) {
+            $(".status").append("authenticated. loading data...");
+            loadApiData();
+          } else {
+            $(".status").append("not authorized. redirecting to authorization...");
+            window.location = "/";
+          }
+        });
+      });
+
+      function loadApiData() {
+        $.getJSON(apiProxyPrefix + homeResourceUri, function(homeData) {
+          $.each(homeData.links, function(key, homeLink) {
+            if(homeLink.rel == 'self') {
+              queryStaff(homeLink.href);
+            } else if(homeLink.rel == 'getSchools') {
+              querySchools(homeLink.href);
+            }
+          });
+        });
+        $.getJSON(apiProxyPrefix + studentsUri, function(studentData) {
+          $.each(studentData, function(key, student) {
+            $(".students").append('<p>' + student.studentUniqueStateId + ' ' + student.name.firstName + ' ' + student.name.lastSurname + '</p>');
+          });
+        });
+      }
+
+      function querySchools(schoolUri) {
+        $.getJSON(apiProxyPrefix + schoolUri, function(schoolData) {
+          $.each(schoolData, function(key, school) {
+            $(".schoolName").append("School: " + school.nameOfInstitution);
+          });
+        });
+      };
+
+      function queryStaff(staffSelfUri) {
+        $.getJSON(apiProxyPrefix + staffSelfUri, function(staffData) {
+          $(".highestLevelOfEducationCompleted").append("Education: " + staffData.highestLevelOfEducationCompleted);
+          $(".staffName").append(staffData.name.firstName + " " + staffData.name.lastSurname);
+          $.each(staffData.electronicMail, function(key, val) {
+            if(val.emailAddressType = 'Organization') {
+              $(".staffEmail").append("Email:" + val.emailAddress);
+            }
+          });
+        });
+      };
+    </script>
+  </head>
+  <body>
+    <div class="status"></div>
+    <br/>
+    <b>Staff</b>
+    <div class="schoolName"></div>
+	 	<div class="staffName"></div>
+	 	<div class="staffEmail"></div>
+		<div class="highestLevelOfEducationCompleted"></div>
+    <br/>
+    <b>Students</b>
+    <div class="students"></div>
+  </body>
+</html>
+
